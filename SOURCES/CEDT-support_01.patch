@@ -1,0 +1,179 @@
+commit 0b03aa8ebd7a5b2b9407893f123ee587af45926f
+Author: Ben Widawsky <ben@bwidawsk.net>
+Date:   Thu Feb 25 13:54:56 2021 -0800
+
+    CXL 2.0: CEDT: Add new CEDT table
+    
+    This sets up all of the boilerplate without actually doing anything.
+    
+    Signed-off-by: Ben Widawsky <ben.widawsky@intel.com>
+
+diff --git a/source/common/ahtable.c b/source/common/ahtable.c
+index a313c7f..2679fae 100644
+--- a/source/common/ahtable.c
++++ b/source/common/ahtable.c
+@@ -95,6 +95,7 @@ const AH_TABLE      Gbl_AcpiSupportedTables[] =
+     {ACPI_SIG_BERT, "Boot Error Record Table"},
+     {ACPI_SIG_BGRT, "Boot Graphics Resource Table"},
+     {ACPI_SIG_BOOT, "Simple Boot Flag Table"},
++    {ACPI_SIG_CEDT, "CXL Early Discovery Table"},
+     {ACPI_SIG_CPEP, "Corrected Platform Error Polling table"},
+     {ACPI_SIG_CSRT, "Core System Resource Table"},
+     {ACPI_SIG_DBG2, "Debug Port table type 2"},
+diff --git a/source/common/dmtable.c b/source/common/dmtable.c
+index 0908e44..137b5b9 100644
+--- a/source/common/dmtable.c
++++ b/source/common/dmtable.c
+@@ -376,6 +376,7 @@ const ACPI_DMTABLE_DATA     AcpiDmTableData[] =
+     {ACPI_SIG_BERT, AcpiDmTableInfoBert,    NULL,           NULL,           TemplateBert},
+     {ACPI_SIG_BGRT, AcpiDmTableInfoBgrt,    NULL,           NULL,           TemplateBgrt},
+     {ACPI_SIG_BOOT, AcpiDmTableInfoBoot,    NULL,           NULL,           TemplateBoot},
++    {ACPI_SIG_CEDT, NULL,                   NULL,           NULL,           NULL},
+     {ACPI_SIG_CPEP, NULL,                   AcpiDmDumpCpep, DtCompileCpep,  TemplateCpep},
+     {ACPI_SIG_CSRT, NULL,                   AcpiDmDumpCsrt, DtCompileCsrt,  TemplateCsrt},
+     {ACPI_SIG_DBG2, AcpiDmTableInfoDbg2,    AcpiDmDumpDbg2, DtCompileDbg2,  TemplateDbg2},
+diff --git a/source/common/dmtbinfo1.c b/source/common/dmtbinfo1.c
+index 4adb42a..cb41915 100644
+--- a/source/common/dmtbinfo1.c
++++ b/source/common/dmtbinfo1.c
+@@ -236,6 +236,33 @@ ACPI_DMTABLE_INFO           AcpiDmTableInfoBoot[] =
+ };
+ 
+ 
++/*******************************************************************************
++ *
++ * CEDT - CXL Early Discovery Table
++ *
++ ******************************************************************************/
++
++ACPI_DMTABLE_INFO           AcpiDmTableInfoCedtHdr[] =
++{
++    {ACPI_DMT_UINT8,    ACPI_CEDT_OFFSET (Type),               "Subtable Type", 0},
++    {ACPI_DMT_UINT8,    ACPI_CEDT_OFFSET (Reserved),           "Reserved", 0},
++    {ACPI_DMT_UINT16,   ACPI_CEDT_OFFSET (Length),             "Length", DT_LENGTH},
++    ACPI_DMT_TERMINATOR
++};
++
++/* 0: CXL Host Bridge Structure */
++
++ACPI_DMTABLE_INFO           AcpiDmTableInfoCedt0[] =
++{
++    {ACPI_DMT_UINT32,   ACPI_CEDT0_OFFSET (Uid),               "Associated host bridge", 0},
++    {ACPI_DMT_UINT32,   ACPI_CEDT0_OFFSET (CxlVersion),        "Specification version", 0},
++    {ACPI_DMT_UINT32,   ACPI_CEDT0_OFFSET (Reserved),          "Reserved", 0},
++    {ACPI_DMT_UINT64,   ACPI_CEDT0_OFFSET (Base),              "Register base", 0},
++    {ACPI_DMT_UINT64,   ACPI_CEDT0_OFFSET (Length),            "Register length", 0},
++    ACPI_DMT_TERMINATOR
++};
++
++
+ /*******************************************************************************
+  *
+  * CPEP - Corrected Platform Error Polling table
+diff --git a/source/include/acdisasm.h b/source/include/acdisasm.h
+index e9b7a48..5e94ee3 100644
+--- a/source/include/acdisasm.h
++++ b/source/include/acdisasm.h
+@@ -256,6 +256,8 @@ extern ACPI_DMTABLE_INFO        AcpiDmTableInfoAsfHdr[];
+ extern ACPI_DMTABLE_INFO        AcpiDmTableInfoBoot[];
+ extern ACPI_DMTABLE_INFO        AcpiDmTableInfoBert[];
+ extern ACPI_DMTABLE_INFO        AcpiDmTableInfoBgrt[];
++extern ACPI_DMTABLE_INFO        AcpiDmTableInfoCedtHdr[];
++extern ACPI_DMTABLE_INFO        AcpiDmTableInfoCedt0[];
+ extern ACPI_DMTABLE_INFO        AcpiDmTableInfoCpep[];
+ extern ACPI_DMTABLE_INFO        AcpiDmTableInfoCpep0[];
+ extern ACPI_DMTABLE_INFO        AcpiDmTableInfoCsrt0[];
+diff --git a/source/include/actbinfo.h b/source/include/actbinfo.h
+index 8a1fd74..9735f22 100644
+--- a/source/include/actbinfo.h
++++ b/source/include/actbinfo.h
+@@ -104,6 +104,8 @@
+ #define ACPI_ASF2a_OFFSET(f)            (UINT16) ACPI_OFFSET (ACPI_ASF_CONTROL_DATA,f)
+ #define ACPI_ASF3_OFFSET(f)             (UINT16) ACPI_OFFSET (ACPI_ASF_RMCP,f)
+ #define ACPI_ASF4_OFFSET(f)             (UINT16) ACPI_OFFSET (ACPI_ASF_ADDRESS,f)
++#define ACPI_CEDT_OFFSET(f)             (UINT16) ACPI_OFFSET (ACPI_CEDT_HEADER, f)
++#define ACPI_CEDT0_OFFSET(f)            (UINT16) ACPI_OFFSET (ACPI_CEDT_CHBS, f)
+ #define ACPI_CPEP0_OFFSET(f)            (UINT16) ACPI_OFFSET (ACPI_CPEP_POLLING,f)
+ #define ACPI_CSRT0_OFFSET(f)            (UINT16) ACPI_OFFSET (ACPI_CSRT_GROUP,f)
+ #define ACPI_CSRT1_OFFSET(f)            (UINT16) ACPI_OFFSET (ACPI_CSRT_SHARED_INFO,f)
+diff --git a/source/include/actbl1.h b/source/include/actbl1.h
+index b76195f..ce4737d 100644
+--- a/source/include/actbl1.h
++++ b/source/include/actbl1.h
+@@ -64,6 +64,7 @@
+ #define ACPI_SIG_BERT           "BERT"      /* Boot Error Record Table */
+ #define ACPI_SIG_BGRT           "BGRT"      /* Boot Graphics Resource Table */
+ #define ACPI_SIG_BOOT           "BOOT"      /* Simple Boot Flag Table */
++#define ACPI_SIG_CEDT           "CEDT"      /* CXL Early Discovery Table */
+ #define ACPI_SIG_CPEP           "CPEP"      /* Corrected Platform Error Polling table */
+ #define ACPI_SIG_CSRT           "CSRT"      /* Core System Resource Table */
+ #define ACPI_SIG_DBG2           "DBG2"      /* Debug Port table type 2 */
+@@ -383,6 +384,56 @@ typedef struct acpi_table_boot
+ 
+ } ACPI_TABLE_BOOT;
+ 
++/*******************************************************************************
++ *
++ * CEDT - CXL Early Discovery Table
++ *        Version 1
++ *
++ * Conforms to the "CXL Early Discovery Table" (CXL 2.0)
++ *
++ ******************************************************************************/
++
++typedef struct acpi_table_cedt
++{
++    ACPI_TABLE_HEADER       Header;             /* Common ACPI table header */
++
++} ACPI_TABLE_CEDT;
++
++/* CEDT subtable header (Performance Record Structure) */
++
++typedef struct acpi_cedt_header
++{
++    UINT8                   Type;
++    UINT8                   Reserved;
++    UINT16                  Length;
++
++} ACPI_CEDT_HEADER;
++
++/* Values for Type field above */
++
++enum AcpiCedtType
++{
++    ACPI_CEDT_TYPE_CHBS                 = 0,
++};
++
++
++/*
++ * CEDT subtables
++ */
++
++/* 0: CXL Host Bridge Structure */
++
++typedef struct acpi_cedt_chbs
++{
++    ACPI_CEDT_HEADER        Header;
++    UINT32                  Uid;
++    UINT32                  CxlVersion;
++    UINT32                  Reserved;
++    UINT64                  Base;
++    UINT64                  Length;
++
++} ACPI_CEDT_CHBS;
++
+ 
+ /*******************************************************************************
+  *
+diff --git a/source/tools/acpisrc/astable.c b/source/tools/acpisrc/astable.c
+index ef74f17..8aa35fe 100644
+--- a/source/tools/acpisrc/astable.c
++++ b/source/tools/acpisrc/astable.c
+@@ -529,6 +529,7 @@ ACPI_TYPED_IDENTIFIER_TABLE           AcpiIdentifiers[] = {
+     {"ACPI_TABLE_BERT",                     SRC_TYPE_STRUCT},
+     {"ACPI_TABLE_BGRT",                     SRC_TYPE_STRUCT},
+     {"ACPI_TABLE_BOOT",                     SRC_TYPE_STRUCT},
++    {"ACPI_TABLE_CEDT",                     SRC_TYPE_STRUCT},
+     {"ACPI_TABLE_CPEP",                     SRC_TYPE_STRUCT},
+     {"ACPI_TABLE_CSRT",                     SRC_TYPE_STRUCT},
+     {"ACPI_TABLE_DBG2",                     SRC_TYPE_STRUCT},

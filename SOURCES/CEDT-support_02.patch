@@ -1,0 +1,123 @@
+commit b980be9b7fd364f62f62655e458325581a4f239c
+Author: Ben Widawsky <ben@bwidawsk.net>
+Date:   Thu Feb 25 14:11:46 2021 -0800
+
+    CXL 2.0: CEDT: Add table and subtable dumping
+    
+    Signed-off-by: Ben Widawsky <ben.widawsky@intel.com>
+
+diff --git a/source/common/dmtable.c b/source/common/dmtable.c
+index 137b5b9..f483a78 100644
+--- a/source/common/dmtable.c
++++ b/source/common/dmtable.c
+@@ -376,7 +376,7 @@ const ACPI_DMTABLE_DATA     AcpiDmTableData[] =
+     {ACPI_SIG_BERT, AcpiDmTableInfoBert,    NULL,           NULL,           TemplateBert},
+     {ACPI_SIG_BGRT, AcpiDmTableInfoBgrt,    NULL,           NULL,           TemplateBgrt},
+     {ACPI_SIG_BOOT, AcpiDmTableInfoBoot,    NULL,           NULL,           TemplateBoot},
+-    {ACPI_SIG_CEDT, NULL,                   NULL,           NULL,           NULL},
++    {ACPI_SIG_CEDT, NULL,                   AcpiDmDumpCedt, NULL,           NULL},
+     {ACPI_SIG_CPEP, NULL,                   AcpiDmDumpCpep, DtCompileCpep,  TemplateCpep},
+     {ACPI_SIG_CSRT, NULL,                   AcpiDmDumpCsrt, DtCompileCsrt,  TemplateCsrt},
+     {ACPI_SIG_DBG2, AcpiDmTableInfoDbg2,    AcpiDmDumpDbg2, DtCompileDbg2,  TemplateDbg2},
+diff --git a/source/common/dmtbdump1.c b/source/common/dmtbdump1.c
+index 0103a6c..19a810f 100644
+--- a/source/common/dmtbdump1.c
++++ b/source/common/dmtbdump1.c
+@@ -221,6 +221,82 @@ AcpiDmDumpAsf (
+     }
+ }
+ 
++/*******************************************************************************
++ *
++ * FUNCTION:    AcpiDmDumpCedt
++ *
++ * PARAMETERS:  Table               - A CEDT table
++ *
++ * RETURN:      None
++ *
++ * DESCRIPTION: Format the contents of a CEDT. This table type consists
++ *              of an open-ended number of subtables.
++ *
++ ******************************************************************************/
++
++void
++AcpiDmDumpCedt (
++    ACPI_TABLE_HEADER       *Table)
++{
++    ACPI_STATUS             Status;
++    ACPI_CEDT_HEADER        *Subtable;
++    UINT32                  Length = Table->Length;
++    UINT32                  Offset = sizeof (ACPI_TABLE_CEDT);
++    ACPI_DMTABLE_INFO       *InfoTable;
++
++
++    /* There is no main table (other than the standard ACPI header) */
++
++    Subtable = ACPI_ADD_PTR (ACPI_CEDT_HEADER, Table, Offset);
++    while (Offset < Table->Length)
++    {
++        /* Common subtable header */
++
++        AcpiOsPrintf ("\n");
++        Status = AcpiDmDumpTable (Length, Offset, Subtable,
++            Subtable->Length, AcpiDmTableInfoCedtHdr);
++        if (ACPI_FAILURE (Status))
++        {
++            return;
++        }
++
++        switch (Subtable->Type)
++        {
++        case ACPI_CEDT_TYPE_CHBS:
++
++            InfoTable = AcpiDmTableInfoCedt0;
++            break;
++
++        default:
++
++            AcpiOsPrintf ("\n**** Unknown CEDT subtable type 0x%X\n\n",
++                Subtable->Type);
++
++            /* Attempt to continue */
++
++            if (!Subtable->Length)
++            {
++                AcpiOsPrintf ("Invalid zero length subtable\n");
++                return;
++            }
++            goto NextSubtable;
++        }
++
++        Status = AcpiDmDumpTable (Length, Offset, Subtable,
++            Subtable->Length, InfoTable);
++        if (ACPI_FAILURE (Status))
++        {
++            return;
++        }
++
++NextSubtable:
++        /* Point to next subtable */
++
++        Offset += Subtable->Length;
++        Subtable = ACPI_ADD_PTR (ACPI_CEDT_HEADER, Subtable,
++            Subtable->Length);
++    }
++}
+ 
+ /*******************************************************************************
+  *
+diff --git a/source/include/acdisasm.h b/source/include/acdisasm.h
+index 5e94ee3..d7f348f 100644
+--- a/source/include/acdisasm.h
++++ b/source/include/acdisasm.h
+@@ -533,6 +533,10 @@ void
+ AcpiDmDumpAsf (
+     ACPI_TABLE_HEADER       *Table);
+ 
++void
++AcpiDmDumpCedt (
++    ACPI_TABLE_HEADER       *Table);
++
+ void
+ AcpiDmDumpCpep (
+     ACPI_TABLE_HEADER       *Table);

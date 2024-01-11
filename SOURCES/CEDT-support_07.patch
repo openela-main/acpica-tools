@@ -1,0 +1,20 @@
+commit ec39d05939c799dc1a3635c766805924afdbbe9e
+Author: Erik Kaneda <erik.kaneda@intel.com>
+Date:   Tue Jun 1 10:37:51 2021 -0700
+
+    Disassembler: add missing strings to decode subtable types
+    
+    Signed-off-by: Erik Kaneda <erik.kaneda@intel.com>
+
+diff --git a/source/common/dmtable.c b/source/common/dmtable.c
+index 530e872..14aa927 100644
+--- a/source/common/dmtable.c
++++ b/source/common/dmtable.c
+@@ -79,6 +79,7 @@ static const char           *AcpiDmAsfSubnames[] =
+ static const char           *AcpiDmCedtSubnames[] =
+ {
+     "CXL Host Bridge Structure",
++    "CXL Fixed Memory Window Structure",
+     "Unknown Subtable Type"         /* Reserved */
+ };
+ 

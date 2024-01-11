@@ -1,0 +1,31 @@
+commit 5ace82441a34f8d45725f12f6bd2677e79c186a6
+Author: Alison Schofield <alison.schofield@intel.com>
+Date:   Thu May 20 13:33:02 2021 -0700
+
+    Add defines for the CXL Host Bridge Structure (CHBS)
+    
+    CXL 2.0 defines length and version field values for the CHBS.
+    Include them in the ACPI CEDT table definition.
+    
+    Signed-off-by: Alison Schofield <alison.schofield@intel.com>
+
+diff --git a/source/include/actbl1.h b/source/include/actbl1.h
+index a551303..51fee30 100644
+--- a/source/include/actbl1.h
++++ b/source/include/actbl1.h
+@@ -418,6 +418,15 @@ enum AcpiCedtType
+     ACPI_CEDT_TYPE_RESERVED             = 1
+ };
+ 
++/* Values for version field above */
++
++#define ACPI_CEDT_CHBS_VERSION_CXL11    (0)
++#define ACPI_CEDT_CHBS_VERSION_CXL20    (1)
++
++/* Values for length field above */
++
++#define ACPI_CEDT_CHBS_LENGTH_CXL11     (0x2000)
++#define ACPI_CEDT_CHBS_LENGTH_CXL20     (0x10000)
+ 
+ /*
+  * CEDT subtables
